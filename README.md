@@ -1,2 +1,2 @@
-# fetch-tweets-plugin
-Wordpress plugin.
+# tweets-wordpress-plugin
+Wordpress Gutenberg block plugin.
