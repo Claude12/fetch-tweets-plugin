@@ -1,7 +1,15 @@
 # Tweets Block
 Wordpress Gutenberg block plugin.
 
-Uses NPM
+Zip release (install plugin) - https://github.com/Claude12/tweets-block/blob/main/tweets-block.zip
+
+This plugin fetches and displays headers from API - https://httpbin.org/get
+
+Can be adjusted to fetch and display any elements from API
+
+Can be used as widget
+
+## Dev - Uses NPM
 
 npm start  
 
