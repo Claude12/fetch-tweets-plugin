@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: tweets-block — CGB Gutenberg Block Plugin
- * Plugin URI: https://github.com/ahmadawais/create-guten-block/
- * Description: tweets-block — is a Gutenberg plugin created via create-guten-block.
- * Author: mrahmadawais, maedahbatool
+ * Plugin Name: Tweets Block
+ * Plugin URI: https://github.com/Claude12/tweets-block
+ * Description: Tweets Block — is a Gutenberg plugin created via create-guten-block.
+ * Author: Claude12
  * Author URI: https://AhmadAwais.com/
  * Version: 1.0.0
  * License: GPL2+

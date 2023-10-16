@@ -1,4 +1,4 @@
-# tweets-wordpress-plugin
+# Tweets Block
 Wordpress Gutenberg block plugin.
 
 Uses NPM

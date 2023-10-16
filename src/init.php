@@ -1,90 +1,124 @@
 <?php
+
 /**
  * Blocks Initializer
  *
- * Enqueue CSS/JS of all the blocks.
+ * Enqueue CSS/JS of all the blocks, following the latest Gutenberg recommendations.
+ * Ensures performance optimization and security in alignment with WP best practices.
  *
  * @since   1.0.0
  * @package CGB
  */
 
-// Exit if accessed directly.
-if ( ! defined( 'ABSPATH' ) ) {
+// Exit if accessed directly for security.
+if (!defined('ABSPATH')) {
 	exit;
 }
 
 /**
  * Enqueue Gutenberg block assets for both frontend + backend.
  *
- * Assets enqueued:
- * 1. blocks.style.build.css - Frontend + Backend.
- * 2. blocks.build.js - Backend.
- * 3. blocks.editor.build.css - Backend.
- *
- * @uses {wp-blocks} for block type registration & related functions.
- * @uses {wp-element} for WP Element abstraction — structure of blocks.
- * @uses {wp-i18n} to internationalize the block's text.
- * @uses {wp-editor} for WP editor styles.
  * @since 1.0.0
  */
-function tweets_block_cgb_block_assets() { // phpcs:ignore
+function tweets_block_cgb_block_assets()
+{
+	// Styles path.
+	$style_path = 'dist/blocks.style.build.css';
+
+	// JS path.
+	$js_path = 'dist/blocks.build.js';
+
+	// Editor styles path.
+	$editor_style_path = 'dist/blocks.editor.build.css';
+
 	// Register block styles for both frontend + backend.
 	wp_register_style(
-		'tweets_block-cgb-style-css', // Handle.
-		plugins_url( 'dist/blocks.style.build.css', dirname( __FILE__ ) ), // Block style CSS.
-		is_admin() ? array( 'wp-editor' ) : null, // Dependency to include the CSS after it.
-		null // filemtime( plugin_dir_path( __DIR__ ) . 'dist/blocks.style.build.css' ) // Version: File modification time.
+		'tweets_block-cgb-style-css',
+		plugins_url($style_path, dirname(__FILE__)),
+		is_admin() ? array('wp-editor') : null,
+		filemtime(plugin_dir_path(dirname(__FILE__)) . $style_path) // File-based versioning.
 	);
 
 	// Register block editor script for backend.
 	wp_register_script(
-		'tweets_block-cgb-block-js', // Handle.
-		plugins_url( '/dist/blocks.build.js', dirname( __FILE__ ) ), // Block.build.js: We register the block here. Built with Webpack.
-		array( 'wp-blocks', 'wp-i18n', 'wp-element', 'wp-editor' ), // Dependencies, defined above.
-		null, // filemtime( plugin_dir_path( __DIR__ ) . 'dist/blocks.build.js' ), // Version: filemtime — Gets file modification time.
-		true // Enqueue the script in the footer.
+		'tweets_block-cgb-block-js',
+		plugins_url($js_path, dirname(__FILE__)),
+		array('wp-blocks', 'wp-i18n', 'wp-element', 'wp-editor'),
+		filemtime(plugin_dir_path(dirname(__FILE__)) . $js_path), // File-based versioning.
+		true // Enqueue in the footer for performance.
 	);
 
 	// Register block editor styles for backend.
 	wp_register_style(
-		'tweets_block-cgb-block-editor-css', // Handle.
-		plugins_url( 'dist/blocks.editor.build.css', dirname( __FILE__ ) ), // Block editor CSS.
-		array( 'wp-edit-blocks' ), // Dependency to include the CSS after it.
-		null // filemtime( plugin_dir_path( __DIR__ ) . 'dist/blocks.editor.build.css' ) // Version: File modification time.
+		'tweets_block-cgb-block-editor-css',
+		plugins_url($editor_style_path, dirname(__FILE__)),
+		array('wp-edit-blocks'),
+		filemtime(plugin_dir_path(dirname(__FILE__)) . $editor_style_path) // File-based versioning.
 	);
 
-	// WP Localized globals. Use dynamic PHP stuff in JavaScript via `cgbGlobal` object.
+	// Localize script for dynamic data access.
 	wp_localize_script(
 		'tweets_block-cgb-block-js',
-		'cgbGlobal', // Array containing dynamic data for a JS Global.
+		'cgbGlobal',
 		[
-			'pluginDirPath' => plugin_dir_path( __DIR__ ),
-			'pluginDirUrl'  => plugin_dir_url( __DIR__ ),
-			// Add more data here that you want to access from `cgbGlobal` object.
+			'pluginDirPath' => plugin_dir_path(__DIR__),
+			'pluginDirUrl'  => plugin_dir_url(__DIR__),
 		]
 	);
 
-	/**
-	 * Register Gutenberg block on server-side.
-	 *
-	 * Register the block on server-side to ensure that the block
-	 * scripts and styles for both frontend and backend are
-	 * enqueued when the editor loads.
-	 *
-	 * @link https://wordpress.org/gutenberg/handbook/blocks/writing-your-first-block-type#enqueuing-block-scripts
-	 * @since 1.16.0
-	 */
+	// Register the block for both frontend and backend.
 	register_block_type(
-		'cgb/block-tweets-block', array(
-			// Enqueue blocks.style.build.css on both frontend & backend.
+		'cgb/block-tweets-block',
+		array(
 			'style'         => 'tweets_block-cgb-style-css',
-			// Enqueue blocks.build.js in the editor only.
 			'editor_script' => 'tweets_block-cgb-block-js',
-			// Enqueue blocks.editor.build.css in the editor only.
 			'editor_style'  => 'tweets_block-cgb-block-editor-css',
+			'render_callback' => 'render_tweets_block',
 		)
 	);
 }
 
-// Hook: Block assets.
-add_action( 'init', 'tweets_block_cgb_block_assets' );
+/**
+ * Render the block's content.
+ *
+ * @return string Block content.
+ */
+function render_tweets_block()
+{
+	$transient_key = 'cached_tweets_block_headers';
+	$cached_data = get_transient($transient_key);
+
+	if (false !== $cached_data) {
+		return $cached_data; // Return the cached data if it exists.
+	}
+
+	$response = wp_remote_get('https://httpbin.org/get');
+	if (is_wp_error($response)) {
+		return 'Error fetching headers.';
+	}
+
+	$body = wp_remote_retrieve_body($response);
+	$data = json_decode($body);
+	$headersData = $data->headers;
+
+	$output = '<div class="wp-block-cgb-block-tweets-block"><h4>Headers from API</h4><ul>';
+	foreach ($headersData as $key => $value) {
+		$output .= "<li><strong>$key</strong>: $value</li>";
+	}
+	$output .= '</ul></div>';
+
+	// Store the output into a transient, set to expire in 12 hours (43200 seconds).
+	set_transient($transient_key, $output, 43200);
+
+	return $output;
+}
+
+add_action('rest_api_init', function () {
+	register_rest_route('wp/v2', '/get-tweets-headers', array(
+		'methods' => 'GET',
+		'callback' => 'render_tweets_block',
+	));
+});
+
+// Enqueue block assets.
+add_action('init', 'tweets_block_cgb_block_assets');
